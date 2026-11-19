@@ -88,7 +88,7 @@ class Settings:
 
     # concurrency & politeness
     smtp_workers: int = 4
-    dns_workers: int = 16
+    dns_workers: int = 4
     per_mx_interval: float = 8.0     # min seconds between connections to the same mail provider
     per_mx_jitter: float = 7.0       # + random 0..jitter seconds
     rcpt_delay_min: float = 0.5
@@ -113,6 +113,9 @@ class Settings:
 
     # DNS
     dns_timeout: float = 6.0
+    dns_over_https: bool = True
+    dns_passes: int = 3
+    dns_retry_wait: float = 10.0
     dns_fallback_servers: List[str] = field(default_factory=lambda: ["1.1.1.1", "8.8.8.8"])
 
     # dashboard server
@@ -136,7 +139,7 @@ class Settings:
             use_starttls=_bool("USE_STARTTLS", False),
             preflight_host=_str("PREFLIGHT_HOST", "gmail-smtp-in.l.google.com"),
             smtp_workers=_int("SMTP_WORKERS", 4),
-            dns_workers=_int("DNS_WORKERS", 16),
+            dns_workers=_int("DNS_WORKERS", 4),
             per_mx_interval=_float("PER_MX_INTERVAL", 8.0),
             per_mx_jitter=_float("PER_MX_JITTER", 7.0),
             rcpt_delay_min=_float("RCPT_DELAY_MIN", 0.5),
@@ -151,6 +154,9 @@ class Settings:
             mx_cache_days=_int("MX_CACHE_DAYS", 7),
             catch_all_cache_days=_int("CATCH_ALL_CACHE_DAYS", 14),
             dns_timeout=_float("DNS_TIMEOUT", 6.0),
+            dns_over_https=_bool("DNS_OVER_HTTPS", True),
+            dns_passes=_int("DNS_PASSES", 3),
+            dns_retry_wait=_float("DNS_RETRY_WAIT", 10.0),
             dns_fallback_servers=_list("DNS_FALLBACK_SERVERS", ["1.1.1.1", "8.8.8.8"]),
             host=_str("HOST", "127.0.0.1"),
             port=_int("PORT", 8765),

@@ -194,6 +194,14 @@ class SQLiteStorage(Storage):
         )
         return cur.rowcount
 
+    def reset_dns_failures(self, job_id: int) -> int:
+        cur = self._exec(
+            "UPDATE emails SET status='pending', stage='mx', reason='' "
+            "WHERE job_id=? AND status='risky' AND reason LIKE 'Unknown: DNS lookup failed%'",
+            [job_id],
+        )
+        return cur.rowcount
+
     def next_retry_at(self, job_id: int) -> Optional[float]:
         row = self._one(
             "SELECT MIN(next_attempt_at) t FROM emails WHERE job_id=? AND stage='retry'", [job_id]

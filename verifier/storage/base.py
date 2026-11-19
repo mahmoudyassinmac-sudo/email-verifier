@@ -52,6 +52,10 @@ class Storage(ABC):
         """Move 'retry' emails whose time has come back to the 'smtp' stage."""
 
     @abstractmethod
+    def reset_dns_failures(self, job_id: int) -> int:
+        """Send emails finalized as 'DNS lookup failed' back to the MX stage."""
+
+    @abstractmethod
     def next_retry_at(self, job_id: int) -> Optional[float]: ...
 
     @abstractmethod

@@ -259,11 +259,32 @@ class VerifierEngine:
         self.store.update_emails(updates)
 
     def _stage_mx(self, job_id: int, stop: threading.Event) -> None:
+        reset = self.store.reset_dns_failures(job_id)
+        if reset:
+            log.info("re-checking %d emails whose DNS lookup failed earlier", reset)
+        passes = max(1, self.s.dns_passes)
+        for attempt in range(passes):
+            if stop.is_set():
+                return
+            last = attempt == passes - 1
+            failed = self._mx_pass(job_id, stop, attempt, last,
+                                   workers=self.s.dns_workers if attempt == 0 else max(1, self.s.dns_workers // 2))
+            if not failed:
+                return
+            if not last:
+                self._label(job_id, "Stage 5/6 - MX lookup: retrying %d domains that failed DNS" % failed, force=True)
+                stop.wait(self.s.dns_retry_wait)
+
+    def _mx_pass(self, job_id: int, stop: threading.Event, attempt: int, last: bool, workers: int) -> int:
+        """One pass over domains still at the MX stage. Returns how many hit DNS errors
+        (left pending unless this is the last pass)."""
         domains = self.store.domains_at_stage(job_id, STAGE_MX)
         if not domains:
-            return
+            return 0
         total = len(domains)
         done = 0
+        failed = 0
+        tag = "" if attempt == 0 else " - retry %d" % attempt
         need: List[str] = []
         for d in domains:
             cached = self._cached_mx(d)
@@ -272,11 +293,9 @@ class VerifierEngine:
                 done += 1
             else:
                 need.append(d)
-        self._label(job_id, "Stage 5/6 - MX lookup (%d/%d domains)" % (done, total), force=True)
-        with ThreadPoolExecutor(max_workers=self.s.dns_workers) as pool:
-            futures = {}
-            for d in need:
-                futures[pool.submit(self.resolver.resolve, d)] = d
+        self._label(job_id, "Stage 5/6 - MX lookup%s (%d/%d domains)" % (tag, done, total), force=True)
+        with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+            futures = {pool.submit(self.resolver.resolve, d): d for d in need}
             for fut in as_completed(futures):
                 d = futures[fut]
                 try:
@@ -285,14 +304,19 @@ class VerifierEngine:
                     res = MxResult(MX_ERROR, [], str(exc))
                 self.store.upsert_domain(d, mx_status=res.status, mx_hosts=res.hosts,
                                          mx_detail=res.detail, mx_checked_at=time.time())
-                self._apply_mx(job_id, d, res)
+                if res.status == MX_ERROR and not last:
+                    failed += 1          # stays at the MX stage for the next pass
+                else:
+                    if res.status == MX_ERROR:
+                        failed += 1
+                    self._apply_mx(job_id, d, res)
                 done += 1
-                self._label(job_id, "Stage 5/6 - MX lookup (%d/%d domains)" % (done, total))
+                self._label(job_id, "Stage 5/6 - MX lookup%s (%d/%d domains)" % (tag, done, total))
                 if stop.is_set():
                     for f in futures:
                         f.cancel()
                     break
-        self._label(job_id, "Stage 5/6 - MX lookup (%d/%d domains)" % (done, total), force=True)
+        return failed
 
     # ---------------------------------------------------------------- stage 6
     def _skip_reason(self, domain: str, mx_host: str) -> Optional[str]:
