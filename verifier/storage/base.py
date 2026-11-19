@@ -56,6 +56,10 @@ class Storage(ABC):
         """Send emails finalized as 'DNS lookup failed' back to the MX stage."""
 
     @abstractmethod
+    def requeue_reason(self, job_id: int, reason_prefix: str, stage: str) -> int:
+        """Send risky emails whose reason starts with `reason_prefix` back to `stage`."""
+
+    @abstractmethod
     def next_retry_at(self, job_id: int) -> Optional[float]: ...
 
     @abstractmethod

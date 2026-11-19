@@ -341,6 +341,10 @@ class VerifierEngine:
         self.store.update_emails(updates)
 
     def _stage_smtp(self, job_id: int, stop: threading.Event) -> None:
+        if not self.s.skip_hosted_business:
+            n = self.store.requeue_reason(job_id, "Hosted on ", STAGE_SMTP)
+            if n:
+                log.info("probing %d emails on hosted business domains (SKIP_HOSTED_BUSINESS=false)", n)
         # preflight
         if not self.s.smtp_enabled:
             self._block_reason = R.NOT_CHECKED_DISABLED

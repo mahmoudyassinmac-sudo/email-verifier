@@ -202,6 +202,14 @@ class SQLiteStorage(Storage):
         )
         return cur.rowcount
 
+    def requeue_reason(self, job_id: int, reason_prefix: str, stage: str) -> int:
+        cur = self._exec(
+            "UPDATE emails SET status='pending', stage=?, reason='', attempts=0 "
+            "WHERE job_id=? AND status='risky' AND reason LIKE ?",
+            [stage, job_id, reason_prefix.replace("%", "") + "%"],
+        )
+        return cur.rowcount
+
     def next_retry_at(self, job_id: int) -> Optional[float]:
         row = self._one(
             "SELECT MIN(next_attempt_at) t FROM emails WHERE job_id=? AND stage='retry'", [job_id]

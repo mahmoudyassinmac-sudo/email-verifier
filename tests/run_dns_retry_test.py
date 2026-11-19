@@ -36,3 +36,11 @@ e.resolver.resolve = lambda d: MxResult(MX_OK, ["mx." + d])
 e.store.update_job(job, status="paused")
 e.run(job)
 print("after resume:", [(r["email"], r["status"], r["reason"]) for r in e.store.iter_emails(job) if "dead" in r["email"]])
+
+# hosted-business requeue when SKIP_HOSTED_BUSINESS flips to false
+e.store.update_emails([(r["id"], {"status": "risky", "stage": "done", "reason": "Hosted on Microsoft 365 - not SMTP-verifiable"})
+                       for r in e.store.iter_emails(job) if r["email"] == "a@ok.test"])
+e.s.skip_hosted_business = False
+e.store.update_job(job, status="paused")
+e.run(job)
+print("after hosted requeue:", [(r["email"], r["reason"]) for r in e.store.iter_emails(job) if r["email"] == "a@ok.test"])
