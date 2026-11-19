@@ -38,6 +38,15 @@ _BLOCK_WORDS = re.compile(
     r"listed|sorbs|barracuda|spamcop|cbl\b|refused|rejected due to",
     re.I,
 )
+# block signals that are not just an enhanced status code (5.7.1 is also used for "user unknown")
+_STRICT_BLOCK_WORDS = re.compile(
+    r"spamhaus|blocked|block ?list|blacklist|black ?listed|\brbl\b|dnsbl|reputation|"
+    r"client host|not authori[sz]ed|\bpbl\b|residential|dynamic|dial-?up|ers-dul|"
+    r"sender ip|reverse dns|ptr|proofpoint|ipcheck|banned|denied by policy|policy reasons|"
+    r"sorbs|barracuda|spamcop|\bcbl\b|refused|helo|listed",
+    re.I,
+)
+_RELAY_WORDS = re.compile(r"relay(ing)? (access )?denied|relay not permitted|unable to relay", re.I)
 _NO_USER_WORDS = re.compile(
     r"user unknown|unknown user|no such user|no such recipient|does not exist|doesn't exist|"
     r"not exist|unknown recipient|recipient unknown|invalid recipient|recipient not found|"
@@ -59,7 +68,9 @@ def classify(code: int, message: str) -> str:
             return FULL
         return TEMP
     if 500 <= code < 600:
-        if _NO_USER_WORDS.search(msg) and not re.search(r"5\.7\.", msg):
+        if _RELAY_WORDS.search(msg):
+            return UNCLEAR          # server does not handle mail for this domain
+        if _NO_USER_WORDS.search(msg) and not _STRICT_BLOCK_WORDS.search(msg):
             return NO_MAILBOX
         if _FULL_WORDS.search(msg) or code == 552:
             return FULL

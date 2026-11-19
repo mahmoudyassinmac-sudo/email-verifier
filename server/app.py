@@ -186,6 +186,17 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         time.sleep(0.3)
         return job_summary(get_job_or_404(job_id))
 
+    @app.post("/api/jobs/{job_id}/recheck")
+    def recheck_job(job_id: int) -> Dict[str, Any]:
+        get_job_or_404(job_id)
+        if runner.running_job() is not None:
+            raise HTTPException(409, "Another job is running. Pause it first.")
+        n = engine.prepare_recheck(job_id)
+        if not n:
+            return {"ok": True, "requeued": 0, "message": "Nothing to re-check"}
+        runner.start(job_id)
+        return {"ok": True, "requeued": n, "message": "Re-checking %d unresolved emails" % n}
+
     @app.post("/api/jobs/{job_id}/pause")
     def pause_job(job_id: int) -> Dict[str, Any]:
         get_job_or_404(job_id)

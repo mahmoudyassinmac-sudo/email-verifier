@@ -249,8 +249,11 @@
 
     // buttons
     const done = j.status === "completed";
-    $("btnStart").textContent = j.processed > 0 && !done ? "Resume" : "Start";
-    $("btnStart").disabled = j.running || done;
+    const unresolved = (j.reasons || []).filter((r) => r.status === "risky" &&
+      /^(Unknown: |Not SMTP-checked: )/.test(r.reason)).reduce((a, r) => a + r.n, 0);
+    $("btnStart").dataset.mode = done ? "recheck" : "start";
+    $("btnStart").textContent = done ? "Re-check " + fmt(unresolved) + " unresolved" : (j.processed > 0 ? "Resume" : "Start");
+    $("btnStart").disabled = j.running || (done && !unresolved);
     $("btnPause").disabled = !j.running;
     $("btnDelete").disabled = j.running;
     $("btnXlsx").href = "/api/jobs/" + j.id + "/download/xlsx";
@@ -298,8 +301,12 @@
 
   function initJobButtons() {
     $("btnStart").addEventListener("click", async () => {
-      try { await api("/api/jobs/" + selectedId + "/start", { method: "POST" }); toast("Job started"); refreshJob(); loadJobs(); }
-      catch (e) { toast(e.message, true); }
+      const recheck = $("btnStart").dataset.mode === "recheck";
+      try {
+        const r = await api("/api/jobs/" + selectedId + (recheck ? "/recheck" : "/start"), { method: "POST" });
+        toast(recheck ? r.message : "Job started");
+        refreshJob(); loadJobs();
+      } catch (e) { toast(e.message, true); }
     });
     $("btnPause").addEventListener("click", async () => {
       try { const r = await api("/api/jobs/" + selectedId + "/pause", { method: "POST" }); toast(r.message); refreshJob(); }

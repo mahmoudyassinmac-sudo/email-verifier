@@ -39,3 +39,11 @@ try:
     print("single:", eng.verify_single("x@gmail.com"))
 finally:
     ctl.stop()
+
+# re-check: unresolved results of a finished job go back into the pipeline
+ctl, handler = mock_smtp.start(2527)
+eng.s.smtp_port = 2527
+n = eng.prepare_recheck(job)
+print("recheck requeued:", n, eng.store.get_job(job)["status"])
+print("recheck ->", eng.run(job), eng.store.counts(job))
+ctl.stop()

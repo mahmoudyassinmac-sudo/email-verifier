@@ -219,6 +219,19 @@ class VerifierEngine:
                                   error="%s\n%s" % (exc, traceback.format_exc()[-2000:]))
             raise
 
+    def prepare_recheck(self, job_id: int) -> int:
+        """Re-open the unresolved results of a finished job: DNS failures go back to the
+        MX stage, every 'Unknown: ...' / 'Not SMTP-checked: ...' goes back to SMTP."""
+        n = self.store.reset_dns_failures(job_id)
+        n += self.store.requeue_reason(job_id, "Unknown: ", STAGE_SMTP)
+        n += self.store.requeue_reason(job_id, "Not SMTP-checked: ", STAGE_SMTP)
+        if not self.s.skip_hosted_business:
+            n += self.store.requeue_reason(job_id, "Hosted on ", STAGE_SMTP)
+        if n:
+            self.store.update_job(job_id, status=JOB_PAUSED, finished_at=None,
+                                  stage_label="Re-check queued (%d emails)" % n, message=None)
+        return n
+
     def _label(self, job_id: int, text: str, force: bool = False) -> None:
         now = time.time()
         if force or now - self._label_at.get(job_id, 0) > 1.0:
