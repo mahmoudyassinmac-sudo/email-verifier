@@ -566,12 +566,14 @@ class VerifierEngine:
         processed = total - pending
         now = time.time()
         samples = self._samples.setdefault(job_id, deque(maxlen=600))
+        if samples and processed < samples[-1][1]:
+            samples.clear()  # a re-check put emails back in the queue: restart the speed window
         if not samples or now - samples[-1][0] >= 1.0:
             samples.append((now, processed))
         rate = 0.0
         window = [s for s in samples if now - s[0] <= 300]
         if len(window) >= 2 and window[-1][0] > window[0][0]:
-            rate = (window[-1][1] - window[0][1]) / (window[-1][0] - window[0][0])
+            rate = max(0.0, (window[-1][1] - window[0][1]) / (window[-1][0] - window[0][0]))
         eta = None
         if job["status"] == JOB_RUNNING and pending:
             if rate > 0:
