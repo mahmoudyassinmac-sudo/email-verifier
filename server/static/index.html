@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email Verifier</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%237c5cff'/><path d='M9 16.5l4.5 4.5L23 11.5' stroke='white' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+</head>
+<body>
+  <div class="bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
+
+  <header class="topbar glass">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" /></svg>
+      </div>
+      <div>
+        <h1>Email Verifier</h1>
+        <p class="muted">6-stage list cleaning engine · running locally</p>
+      </div>
+    </div>
+    <div class="chips">
+      <span class="chip" id="chipSmtp"><i class="dot"></i><span>Checking port 25…</span></span>
+      <span class="chip" id="chipIp" title="Public IP used for SMTP probing"><span>IP —</span></span>
+      <span class="chip" id="chipHelo" title="HELO name / MAIL FROM used by the probe"><span>HELO —</span></span>
+      <button class="icon-btn" id="btnRefreshSmtp" title="Re-check port 25">
+        <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ======================= left column ======================= -->
+    <aside class="col-left">
+      <section class="card glass">
+        <h2>New list</h2>
+        <label class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" accept=".csv,.xlsx,.xlsm,.txt,.tsv" hidden>
+          <svg viewBox="0 0 24 24" class="dz-icon"><path d="M12 16V4m0 0l-4.5 4.5M12 4l4.5 4.5M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16"/></svg>
+          <strong id="dzTitle">Drop a CSV or Excel file</strong>
+          <span class="muted" id="dzSub">or click to browse · the email column is detected automatically</span>
+        </label>
+        <div class="row gap">
+          <input class="input" id="emailColumn" placeholder="Email column (optional)">
+          <label class="toggle"><input type="checkbox" id="autostart" checked><span>Start now</span></label>
+        </div>
+        <button class="btn primary wide" id="btnUpload" disabled>Upload &amp; verify</button>
+      </section>
+
+      <section class="card glass">
+        <h2>Quick check</h2>
+        <p class="muted small">Single address, all 6 stages. Same endpoint n8n uses:
+          <code>POST /api/verify</code></p>
+        <form class="row gap" id="quickForm">
+          <input class="input" id="quickEmail" placeholder="name@company.com" autocomplete="off">
+          <button class="btn" type="submit" id="btnQuick">Check</button>
+        </form>
+        <div class="quick-result" id="quickResult" hidden></div>
+      </section>
+
+      <section class="card glass">
+        <div class="row between"><h2>Jobs</h2><span class="muted small" id="jobsCount"></span></div>
+        <div class="jobs" id="jobsList"><p class="muted small">No jobs yet — upload a list.</p></div>
+      </section>
+    </aside>
+
+    <!-- ======================= right column ======================= -->
+    <section class="col-right">
+      <div class="empty glass card" id="emptyState">
+        <h2>No job selected</h2>
+        <p class="muted">Upload a list or pick a job on the left to see live progress.</p>
+        <ol class="stages">
+          <li><b>1</b> Clean &amp; fix typos</li><li><b>2</b> Syntax</li><li><b>3</b> Disposable</li>
+          <li><b>4</b> Role flag</li><li><b>5</b> MX lookup</li><li><b>6</b> SMTP probe</li>
+        </ol>
+      </div>
+
+      <div id="jobView" hidden>
+        <section class="card glass job-head">
+          <div class="row between wrap gap">
+            <div class="job-title">
+              <div class="row gap-s"><h2 id="jvName">—</h2><span class="pill" id="jvStatus">—</span></div>
+              <p class="muted small" id="jvMeta">—</p>
+            </div>
+            <div class="row gap-s wrap">
+              <button class="btn primary" id="btnStart">Start</button>
+              <button class="btn" id="btnPause">Pause</button>
+              <a class="btn" id="btnXlsx" href="#">Excel report</a>
+              <a class="btn" id="btnCsv" href="#">Valid CSV</a>
+              <button class="btn ghost danger" id="btnDelete" title="Delete job">Delete</button>
+            </div>
+          </div>
+          <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="jvBar">
+            <div class="seg valid"></div><div class="seg risky"></div><div class="seg invalid"></div><div class="seg dup"></div>
+          </div>
+          <div class="row between wrap small">
+            <span id="jvStage" class="stage-label">—</span>
+            <span class="muted" id="jvRate">—</span>
+          </div>
+          <p class="notice" id="jvNotice" hidden></p>
+        </section>
+
+        <section class="kpis">
+          <div class="kpi glass" data-k="valid"><span class="k-label"><i class="sw valid"></i>Valid</span><strong id="kValid">0</strong><span class="k-sub" id="kValidP">—</span></div>
+          <div class="kpi glass" data-k="risky"><span class="k-label"><i class="sw risky"></i>Risky</span><strong id="kRisky">0</strong><span class="k-sub" id="kRiskyP">—</span></div>
+          <div class="kpi glass" data-k="invalid"><span class="k-label"><i class="sw invalid"></i>Invalid</span><strong id="kInvalid">0</strong><span class="k-sub" id="kInvalidP">—</span></div>
+          <div class="kpi glass" data-k="dup"><span class="k-label"><i class="sw dup"></i>Duplicates</span><strong id="kDup">0</strong><span class="k-sub">removed</span></div>
+          <div class="kpi glass" data-k="pending"><span class="k-label"><i class="sw pending"></i>Pending</span><strong id="kPending">0</strong><span class="k-sub" id="kEta">ETA —</span></div>
+        </section>
+
+        <div class="split">
+          <section class="card glass">
+            <div class="row between"><h2>Breakdown by reason</h2><span class="muted small" id="reasonsTotal"></span></div>
+            <div class="reasons" id="reasons"></div>
+          </section>
+          <section class="card glass">
+            <div class="row between"><h2>Top domains</h2><span class="muted small">valid share</span></div>
+            <table class="table" id="domainsTable">
+              <thead><tr><th>Domain</th><th class="num">Total</th><th class="num">Valid</th><th class="num">Risky</th><th class="num">Invalid</th><th>Valid %</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </section>
+        </div>
+
+        <section class="card glass">
+          <div class="row between"><h2>Live results</h2><span class="muted small">latest 20</span></div>
+          <table class="table" id="recentTable">
+            <thead><tr><th>Email</th><th>Status</th><th>Reason</th><th>MX</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

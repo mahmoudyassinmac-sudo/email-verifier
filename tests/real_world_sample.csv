@@ -1,0 +1,10 @@
+Name,Email,Note
+Typo Gmail,someone.test@gmial.com,typo fix -> gmail.com -> Risky (major provider)
+Hotmail,someone.test@hotmail.com,Risky (major provider)
+Null MX,someone@example.com,Invalid (domain does not accept email)
+Dead domain,someone@this-domain-does-not-exist-9f3k2.com,Invalid (domain does not exist)
+Disposable,someone@mailinator.com,Invalid (disposable)
+Role on own domain,info@citiestate.co,role flag + real SMTP probe on your own domain
+Random on own domain,zz-not-a-real-mailbox-123@citiestate.co,real SMTP probe on your own domain
+Bad syntax,not-an-email,Invalid (syntax)
+Duplicate,SOMEONE.TEST@HOTMAIL.COM,Duplicate

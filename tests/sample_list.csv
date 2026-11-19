@@ -1,0 +1,24 @@
+Name,Phone,Email,Source
+Ahmed Valid,0501111111,valid1@company.test,Expo 2025
+Duplicate Ahmed,0501111111, VALID1@Company.test ,Expo 2025
+No User,0502222222,nouser@company.test,Website
+Info Box,0503333333,info@company.test,Website
+Sara Typo,0504444444,sara@gmial.com,Instagram
+Outlook User,0505555555,omar@hotmial.com,Instagram
+M365 Corp,0506666666,ceo@m365corp.test,LinkedIn
+Catch All,0507777777,anyone@catchall.test,Referral
+Blocked,0508888888,someone@blocked.test,Referral
+Greylisted,0509999999,okay@grey.test,Referral
+Grey Invalid,0509999998,nobody@grey.test,Referral
+Full Box,0501010101,full.box@company.test,Website
+Bad Syntax,0501212121,not-an-email,Website
+Double At,0501313131,a@@b.com,Website
+No TLD,0501414141,x@domain,Website
+Empty,0501515151,,Website
+Disposable,0501616161,test@mailinator.com,Website
+Two in one,0501717171,"nouser2@company.test; valid3@company.test",Website
+Mailto,0501818181,mailto:Valid4@company.test,Website
+Display Name,0501919191,Khalid <valid5@company.test>,Website
+Con TLD,0502020202,valid6@company.con,Website
+Sales Role,0502121212,sales@catchall.test,Website
+Arabic Name محمد,0502222223,valid7@company.test,Website
